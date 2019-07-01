@@ -1,0 +1,8 @@
+{
+  "index": [
+    "# This is a block comment",
+    "### Another block of comments",
+    "## Block comment with header",
+    "## Another block comment with header"
+  ]
+}
