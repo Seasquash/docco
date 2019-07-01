@@ -11,12 +11,7 @@ use nom::{
   bytes::complete::take_until,
   bytes::complete::take_till,
   take_until,
-  take_till,
-  do_parse,
-  named,
-  tag,
-  take,
-  delimited
+  do_parse
 };
 
 use serde::Deserialize;
@@ -24,13 +19,23 @@ use serde_json;
 
 #[derive(Deserialize, Debug)]
 struct Config {
-    index: Vec<String>
+    index: Vec<String>,
+    formats: HashMap<String, ConfigFormat>
+}
+
+#[derive(Deserialize, Debug)]
+struct ConfigFormat {
+    start: String,
+    end: String
 }
 
 fn extract_config() -> Result<Config, Error> {
     let index_file = File::open("docco.json")?;
     let reader = BufReader::new(index_file);
-    let config = serde_json::from_reader(reader)?;
+    let config: Config = serde_json::from_reader(reader)?;
+    for (k, v) in &config.formats {
+        println!("Key: {}, Value: {:?}", k, v);
+    }
     Ok(config)
 }
 
