@@ -14,17 +14,20 @@ use nom::{
   do_parse
 };
 
+use walkdir::WalkDir;
+
 use serde::Deserialize;
 use serde_json;
 
 #[derive(Deserialize, Debug)]
 struct Config {
     index: Vec<String>,
-    formats: HashMap<String, ConfigFormat>
+    formats: Vec<ConfigFormat>
 }
 
 #[derive(Deserialize, Debug)]
 struct ConfigFormat {
+    extension: String,
     start: String,
     end: String
 }
@@ -33,34 +36,44 @@ fn extract_config() -> Result<Config, Error> {
     let index_file = File::open("docco.json")?;
     let reader = BufReader::new(index_file);
     let config: Config = serde_json::from_reader(reader)?;
-    for (k, v) in &config.formats {
-        println!("Key: {}, Value: {:?}", k, v);
+    for v in &config.formats {
+        println!("Format: {:?}", v);
     }
     Ok(config)
 }
 
 fn main() -> Result<(), Error> {
     let src = read_to_string("file.ts")?;
-    let config = extract_config();
+    let config = extract_config()?;
     let hash_map = HashMap::new();
     let result = parse_src(&src, hash_map);
 
-    match config {
-        Ok(c) => {
-            let ordered = order_comments(result, c.index);
-            output_comments(ordered);
-        },
-        _ => {
-            let output = result
-                .iter()
-                .flat_map(|(k, v)| {
-                    let mut new_vec = v.clone();
-                    new_vec.insert(0, k);
-                    new_vec
-                })
-                .collect::<Vec<&str>>();
-            output_comments(output);
+    let ext = &config.formats[0].extension;
+
+    for entry in WalkDir::new(".")
+            .follow_links(true)
+            .into_iter()
+            .filter_map(|e| e.ok()) {
+        let f_name = entry.file_name().to_string_lossy();
+
+        if f_name.ends_with(ext) {
+            println!("{}", f_name);
         }
+    }
+
+    if config.index.len() > 0 {
+        let ordered = order_comments(result, config.index);
+        output_comments(ordered);
+    } else {
+        let output = result
+            .iter()
+            .flat_map(|(k, v)| {
+                let mut new_vec = v.clone();
+                new_vec.insert(0, k);
+                new_vec
+            })
+            .collect::<Vec<&str>>();
+        output_comments(output);
     }
 
     Ok(())

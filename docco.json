@@ -5,10 +5,11 @@
     "## Block comment with header",
     "## Another block comment with header"
   ],
-  "formats": {
-    "ts": {
+  "formats": [
+    {
+      "extension": ".ts",
       "start": "/**",
       "end": "*/"
     }
-  }
+  ]
 }
