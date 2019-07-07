@@ -10,6 +10,11 @@
       "extension": ".ts",
       "start": "/**",
       "end": "*/"
+    },
+    {
+      "extension": ".js",
+      "start": "/**",
+      "end": "*/"
     }
   ]
 }

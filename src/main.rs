@@ -42,24 +42,49 @@ fn extract_config() -> Result<Config, Error> {
     Ok(config)
 }
 
-fn main() -> Result<(), Error> {
-    let src = read_to_string("file.ts")?;
-    let config = extract_config()?;
-    let hash_map = HashMap::new();
-    let result = parse_src(&src, hash_map);
+fn merge_maps<'a>(maps: &Vec<HashMap<&'a str, Vec<&'a str>>>) -> HashMap<&'a str, Vec<&'a str>> {
+    maps.iter().fold(HashMap::new(), |mut acc, map| {
+        for (k, v) in map {
+            if acc.contains_key(k) {
+                let empty = Vec::new();
+                let combined: Vec<&str> = vec!(v, acc.get(*k).unwrap_or(&empty))
+                    .iter()
+                    .flat_map(move |s| s.iter().map(|e| *e).collect::<Vec<&str>>())
+                    .collect();
+                acc.insert(*k, combined);
+            } else {
+                acc.insert(*k, v.to_vec());
+            }
+        }
+        acc
+    })
+}
 
-    let ext = &config.formats[0].extension;
-
+fn read_files<'a>(config: &Config) -> Result<Vec<HashMap<&'a str, Vec<&'a str>>>, Error> {
+    let mut results = Vec::new();
     for entry in WalkDir::new(".")
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok()) {
         let f_name = entry.file_name().to_string_lossy();
 
-        if f_name.ends_with(ext) {
-            println!("{}", f_name);
+        for format in &config.formats {
+
+            if f_name.ends_with(&format.extension) {
+                println!("{}", f_name);
+                let src = read_to_string(f_name.to_string())?;
+                results.push(parse_src(&src, HashMap::new()));
+            }
         }
     }
+    Ok(results)
+}
+
+fn main() -> Result<(), Error> {
+    let config = extract_config()?;
+    let files = read_files(&config)?;
+
+    let result = merge_maps(&files);
 
     if config.index.len() > 0 {
         let ordered = order_comments(result, config.index);
@@ -106,7 +131,7 @@ fn output_comments<T: Display>(comments: Vec<T>) {
     }
 }
 
-fn parse_src<'a>(src: &'a str, map: HashMap<&'a str, Vec<&'a str>>) -> HashMap<&'a str, Vec<&'a str>>{
+fn parse_src<'a>(src: &'a str, map: HashMap<&'a str, Vec<&'a str>>) -> HashMap<&'a str, Vec<&'a str>> {
     let parsed = extract_comment_block(&src);
     match parsed {
         Ok((rest, comment_block)) => {
