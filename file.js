@@ -34,11 +34,11 @@ const anotherPieceOfRandomCode = () => {
 
 /**
  * ## Another block comment with header
- * 
+ *
  * ### This is a separate sub header
- * 
- * This is a second line
- * and a third as well
+ *
+ * This is a line
+ * and another one
  */
 const randomFunctionInCode = () => {
 

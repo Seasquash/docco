@@ -9,6 +9,6 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 pub struct ConfigFormat {
     pub extension: String,
-    start: String,
-    end: String
+    pub start: String,
+    pub end: String
 }

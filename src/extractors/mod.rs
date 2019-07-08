@@ -13,6 +13,11 @@ use nom::{
 
 use super::models::Config;
 
+/**
+ * ## Parsing
+ * The comments within the DocBlock will be analysed, the src code is left as
+ * it is.
+ */
 fn discard(input: &str) -> IResult<&str, &str> {
     do_parse!(input,
         take_until!("/**") >>
@@ -28,12 +33,12 @@ pub fn extract_comments_from_block(block: &str) -> Vec<String> {
         .collect()
 }
 
-pub fn extract_comment_block(input: &str) -> IResult<&str, &str> {
+pub fn extract_comment_block<'a>(input: &'a str, start: &'a str, end: &'a str) -> IResult<&'a str, &'a str> {
     let res = discard(input)?;
     delimited(
-        tag("/**"),
-        take_until("*/"),
-        tag("*/")
+        tag(start),
+        take_until(end),
+        tag(end)
     )(res.0)
 }
 
