@@ -42,25 +42,27 @@ fn extract_config() -> Result<Config, Error> {
     Ok(config)
 }
 
-fn merge_maps<'a>(maps: &Vec<HashMap<&'a str, Vec<&'a str>>>) -> HashMap<&'a str, Vec<&'a str>> {
+type DocMap = HashMap<String, Vec<String>>;
+
+fn merge_maps(maps: &Vec<DocMap>) -> DocMap {
     maps.iter().fold(HashMap::new(), |mut acc, map| {
         for (k, v) in map {
             if acc.contains_key(k) {
                 let empty = Vec::new();
-                let combined: Vec<&str> = vec!(v, acc.get(*k).unwrap_or(&empty))
+                let combined: Vec<String> = vec!(v, acc.get(k).unwrap_or(&empty))
                     .iter()
-                    .flat_map(move |s| s.iter().map(|e| *e).collect::<Vec<&str>>())
+                    .flat_map(move |s| s.iter().map(|e| e.to_owned()).collect::<Vec<String>>())
                     .collect();
-                acc.insert(*k, combined);
+                acc.insert(k.to_owned(), combined);
             } else {
-                acc.insert(*k, v.to_vec());
+                acc.insert(k.to_owned(), v.to_vec());
             }
         }
         acc
     })
 }
 
-fn read_files<'a>(config: &Config) -> Result<Vec<HashMap<&'a str, Vec<&'a str>>>, Error> {
+fn read_files(config: &Config) -> Result<Vec<DocMap>, Error> {
     let mut results = Vec::new();
     for entry in WalkDir::new(".")
             .follow_links(true)
@@ -94,17 +96,17 @@ fn main() -> Result<(), Error> {
             .iter()
             .flat_map(|(k, v)| {
                 let mut new_vec = v.clone();
-                new_vec.insert(0, k);
+                new_vec.insert(0, k.to_owned());
                 new_vec
             })
-            .collect::<Vec<&str>>();
+            .collect::<Vec<String>>();
         output_comments(output);
     }
 
     Ok(())
 }
 
-fn order_comments(comments: HashMap<&str, Vec<&str>>, index: Vec<String>) -> Vec<String> {
+fn order_comments(comments: DocMap, index: Vec<String>) -> Vec<String> {
     let mut map = comments.clone();
     let mut output: Vec<String> = vec!();
     for i in index {
@@ -131,7 +133,7 @@ fn output_comments<T: Display>(comments: Vec<T>) {
     }
 }
 
-fn parse_src<'a>(src: &'a str, map: HashMap<&'a str, Vec<&'a str>>) -> HashMap<&'a str, Vec<&'a str>> {
+fn parse_src<'a>(src: &'a str, map: DocMap) -> DocMap {
     let parsed = extract_comment_block(&src);
     match parsed {
         Ok((rest, comment_block)) => {
@@ -151,11 +153,11 @@ fn parse_src<'a>(src: &'a str, map: HashMap<&'a str, Vec<&'a str>>) -> HashMap<&
     }
 }
 
-fn extract_comments_from_block(block: &str) -> Vec<&str> {
+fn extract_comments_from_block(block: &str) -> Vec<String> {
     let x: &[char] = &['*', ' '];
     block
         .lines()
-        .map(|l| l.trim_start_matches(x))
+        .map(|l| l.trim_start_matches(x).to_owned())
         .collect()
 }
 
@@ -175,14 +177,15 @@ fn extract_comment_block(input: &str) -> IResult<&str, &str> {
     )(res.0)
 }
 
-fn find_header(input: &str) -> IResult<&str, &str> {
+fn find_header(input: &str) -> IResult<&str, String> {
     let (parsed, _) = do_parse!(input,
         take_until!("#") >>
         (input)
     )?;
-    delimited(
+    let res = delimited(
         take_till(|c| c == '#'),
         take_till(|c| c == '\n'),
         tag("\n")
-    )(parsed)
+    )(parsed)?;
+    Ok((res.0, res.1.to_owned()))
 }
