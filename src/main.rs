@@ -76,7 +76,7 @@ fn read_files(config: &Config) -> Result<Vec<DocMap>, Error> {
             if entry.file_name().to_string_lossy().ends_with(&format.extension) {
                 println!("{:?}", full_name);
                 let src = read_to_string(&full_name)?;
-                results.push(parse_src(&src, HashMap::new(), &format.start, &format.end));
+                results.push(parse_src(&src, HashMap::new(), &format.start, &format.end, format.delimiter));
             }
         }
     }

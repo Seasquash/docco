@@ -28,7 +28,7 @@ fn find_header(input: &str) -> IResult<&str, String> {
     Ok((res.0, res.1.to_owned()))
 }
 
-pub fn parse_src<'a>(src: &'a str, map: DocMap, start: &'a str, end: &'a str) -> DocMap {
+pub fn parse_src<'a>(src: &'a str, map: DocMap, start: &'a str, end: &'a str, delimiter: char) -> DocMap {
     let parsed = extract_comment_block(&src, start, end);
     match parsed {
         Ok((rest, comment_block)) => {
@@ -37,9 +37,9 @@ pub fn parse_src<'a>(src: &'a str, map: DocMap, start: &'a str, end: &'a str) ->
             match header_comment {
                 Ok((comment_lines, header)) => {
                     println!("HEADER: {:?}", header);
-                    let comments = extract_comments_from_block(comment_lines);
+                    let comments = extract_comments_from_block(comment_lines, delimiter);
                     cloned.insert(header, comments);
-                    parse_src(rest, cloned, start, end)
+                    parse_src(rest, cloned, start, end, delimiter)
                 },
                 Err(e) => { println!("HEADER NOT FOUND: {:?}", e); map }
             }

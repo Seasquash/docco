@@ -12,17 +12,20 @@
     {
       "extension": ".ts",
       "start": "/**",
-      "end": "*/"
+      "end": "*/",
+      "delimiter": "*"
     },
     {
       "extension": ".js",
       "start": "/**",
-      "end": "*/"
+      "end": "*/",
+      "delimiter": "*"
     },
     {
       "extension": ".rs",
       "start": "/**",
-      "end": "*/"
+      "end": "*/",
+      "delimiter": "*"
     }
   ]
 }

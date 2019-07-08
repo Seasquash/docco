@@ -15,18 +15,19 @@ use super::models::Config;
 
 /**
  * ## Parsing
+ *
  * The comments within the DocBlock will be analysed, the src code is left as
  * it is.
  */
-fn discard(input: &str) -> IResult<&str, &str> {
+fn discard<'a>(input: &'a str, start: &'a str) -> IResult<&'a str, &'a str> {
     do_parse!(input,
-        take_until!("/**") >>
+        take_until!(start) >>
         (input)
     )
 }
 
-pub fn extract_comments_from_block(block: &str) -> Vec<String> {
-    let x: &[char] = &['*', ' '];
+pub fn extract_comments_from_block(block: &str, delimiter: char) -> Vec<String> {
+    let x: &[char] = &[delimiter, ' '];
     block
         .lines()
         .map(|l| l.trim_start_matches(x).to_owned())
@@ -34,7 +35,7 @@ pub fn extract_comments_from_block(block: &str) -> Vec<String> {
 }
 
 pub fn extract_comment_block<'a>(input: &'a str, start: &'a str, end: &'a str) -> IResult<&'a str, &'a str> {
-    let res = discard(input)?;
+    let res = discard(input, start)?;
     delimited(
         tag(start),
         take_until(end),

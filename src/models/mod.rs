@@ -10,5 +10,6 @@ pub struct Config {
 pub struct ConfigFormat {
     pub extension: String,
     pub start: String,
-    pub end: String
+    pub end: String,
+    pub delimiter: char
 }
