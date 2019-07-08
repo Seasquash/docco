@@ -1,48 +1,19 @@
+mod parsers;
+mod types;
+mod outputs;
+mod extractors;
+mod models;
+
 use std::fs::read_to_string;
 use std::io::Error;
-use std::io::BufReader;
-use std::fs::File;
 use std::collections::HashMap;
-use std::fmt::Display;
-use nom::{
-  IResult,
-  sequence::delimited,
-  bytes::complete::tag,
-  bytes::complete::take_until,
-  bytes::complete::take_till,
-  take_until,
-  do_parse
-};
-
 use walkdir::WalkDir;
 
-use serde::Deserialize;
-use serde_json;
-
-#[derive(Deserialize, Debug)]
-struct Config {
-    index: Vec<String>,
-    formats: Vec<ConfigFormat>
-}
-
-#[derive(Deserialize, Debug)]
-struct ConfigFormat {
-    extension: String,
-    start: String,
-    end: String
-}
-
-fn extract_config() -> Result<Config, Error> {
-    let index_file = File::open("docco.json")?;
-    let reader = BufReader::new(index_file);
-    let config: Config = serde_json::from_reader(reader)?;
-    for v in &config.formats {
-        println!("Format: {:?}", v);
-    }
-    Ok(config)
-}
-
-type DocMap = HashMap<String, Vec<String>>;
+use extractors::extract_config;
+use models::Config;
+use outputs::output_comments;
+use parsers::parse_src;
+use types::DocMap;
 
 fn merge_maps(maps: &Vec<DocMap>) -> DocMap {
     maps.iter().fold(HashMap::new(), |mut acc, map| {
@@ -125,67 +96,4 @@ fn order_comments(comments: DocMap, index: Vec<String>) -> Vec<String> {
         }
     }
     output
-}
-
-fn output_comments<T: Display>(comments: Vec<T>) {
-    for comment in comments {
-        println!("PARSED COMMENT --- {}", comment);
-    }
-}
-
-fn parse_src<'a>(src: &'a str, map: DocMap) -> DocMap {
-    let parsed = extract_comment_block(&src);
-    match parsed {
-        Ok((rest, comment_block)) => {
-            let mut cloned = map.clone();
-            let header_comment = find_header(comment_block);
-            match header_comment {
-                Ok((comment_lines, header)) => {
-                    println!("HEADER: {:?}", header);
-                    let comments = extract_comments_from_block(comment_lines);
-                    cloned.insert(header, comments);
-                    parse_src(rest, cloned)
-                },
-                Err(e) => { println!("HEADER NOT FOUND: {:?}", e); map }
-            }
-        },
-        Err(e) => { println!("PARSE ERROR: {:?}", e); map }
-    }
-}
-
-fn extract_comments_from_block(block: &str) -> Vec<String> {
-    let x: &[char] = &['*', ' '];
-    block
-        .lines()
-        .map(|l| l.trim_start_matches(x).to_owned())
-        .collect()
-}
-
-fn discard(input: &str) -> IResult<&str, &str> {
-    do_parse!(input,
-        take_until!("/**") >>
-        (input)
-    )
-}
-
-fn extract_comment_block(input: &str) -> IResult<&str, &str> {
-    let res = discard(input)?;
-    delimited(
-        tag("/**"),
-        take_until("*/"),
-        tag("*/")
-    )(res.0)
-}
-
-fn find_header(input: &str) -> IResult<&str, String> {
-    let (parsed, _) = do_parse!(input,
-        take_until!("#") >>
-        (input)
-    )?;
-    let res = delimited(
-        take_till(|c| c == '#'),
-        take_till(|c| c == '\n'),
-        tag("\n")
-    )(parsed)?;
-    Ok((res.0, res.1.to_owned()))
 }
