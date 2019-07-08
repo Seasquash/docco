@@ -15,6 +15,11 @@
       "extension": ".js",
       "start": "/**",
       "end": "*/"
+    },
+    {
+      "extension": ".rs",
+      "start": "/**",
+      "end": "*/"
     }
   ]
 }

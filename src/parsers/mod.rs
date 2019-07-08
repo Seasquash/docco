@@ -9,6 +9,12 @@ use nom::{
 use super::types::DocMap;
 use super::extractors::{ extract_comments_from_block, extract_comment_block };
 
+/**
+ * ## Parsing
+ *
+ * The comments are only captured if the first is a MD header, to avoid
+ * capturing function comments.
+ */
 fn find_header(input: &str) -> IResult<&str, String> {
     let (parsed, _) = do_parse!(input,
         take_until!("#") >>

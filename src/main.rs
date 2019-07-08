@@ -11,9 +11,41 @@ use walkdir::WalkDir;
 
 use extractors::extract_config;
 use models::Config;
-use outputs::output_comments;
+use outputs::write_to_file;
 use parsers::parse_src;
 use types::DocMap;
+
+/**
+ * # Docco
+ *
+ * A simple parser wrapper.
+ * It scans different source files to find Doc Blocks, groups them all and
+ * writes the result in a README.md file, generating the documentation
+ * automatically.
+ */
+fn main() -> Result<(), Error> {
+    let config = extract_config()?;
+    let files = read_files(&config)?;
+
+    let result = merge_maps(&files);
+
+    if config.index.len() > 0 {
+        let ordered = order_comments(result, config.index);
+        write_to_file(ordered, "README.md")?;
+    } else {
+        let output = result
+            .iter()
+            .flat_map(|(k, v)| {
+                let mut new_vec = v.clone();
+                new_vec.insert(0, k.to_owned());
+                new_vec
+            })
+            .collect::<Vec<String>>();
+        write_to_file(output, "README.md")?;
+    }
+
+    Ok(())
+}
 
 fn merge_maps(maps: &Vec<DocMap>) -> DocMap {
     maps.iter().fold(HashMap::new(), |mut acc, map| {
@@ -39,13 +71,11 @@ fn read_files(config: &Config) -> Result<Vec<DocMap>, Error> {
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok()) {
-        let f_name = entry.file_name().to_string_lossy();
-
+        let full_name = entry.path().with_file_name(entry.file_name());
         for format in &config.formats {
-
-            if f_name.ends_with(&format.extension) {
-                println!("{}", f_name);
-                let src = read_to_string(f_name.to_string())?;
+            if entry.file_name().to_string_lossy().ends_with(&format.extension) {
+                println!("{:?}", full_name);
+                let src = read_to_string(&full_name)?;
                 results.push(parse_src(&src, HashMap::new()));
             }
         }
@@ -53,30 +83,13 @@ fn read_files(config: &Config) -> Result<Vec<DocMap>, Error> {
     Ok(results)
 }
 
-fn main() -> Result<(), Error> {
-    let config = extract_config()?;
-    let files = read_files(&config)?;
-
-    let result = merge_maps(&files);
-
-    if config.index.len() > 0 {
-        let ordered = order_comments(result, config.index);
-        output_comments(ordered);
-    } else {
-        let output = result
-            .iter()
-            .flat_map(|(k, v)| {
-                let mut new_vec = v.clone();
-                new_vec.insert(0, k.to_owned());
-                new_vec
-            })
-            .collect::<Vec<String>>();
-        output_comments(output);
-    }
-
-    Ok(())
-}
-
+/**
+ * ## Ordering
+ *
+ * If there is an `index` entry within the configuration json, it will be used
+ * to figure out the order in which the comments have to be written to the
+ * documentation, otherwise spits them as they are found while processing.
+ */
 fn order_comments(comments: DocMap, index: Vec<String>) -> Vec<String> {
     let mut map = comments.clone();
     let mut output: Vec<String> = vec!();
@@ -84,15 +97,15 @@ fn order_comments(comments: DocMap, index: Vec<String>) -> Vec<String> {
         if map.contains_key(&i[..]) {
             let values = map.remove_entry(&i[..]).unwrap();
             output.push(i.clone());
-            for v in values.1 {
-                output.push(v.to_owned());
+            for value in values.1 {
+                output.push(value);
             }
         }
     }
-    for (k, v) in map {
-        output.push(k.to_owned());
-        for value in v {
-            output.push(value.to_owned());
+    for (key, values) in map {
+        output.push(key);
+        for value in values {
+            output.push(value);
         }
     }
     output
