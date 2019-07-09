@@ -65,6 +65,7 @@ fn merge_maps(maps: &Vec<DocMap>) -> DocMap {
     })
 }
 
+// TODO: inject the reader in the params as a trait, so can be unit tested.
 fn read_files(config: &Config) -> Result<Vec<DocMap>, Error> {
     let mut results = Vec::new();
     for entry in WalkDir::new(".")
@@ -115,21 +116,24 @@ fn order_comments(comments: DocMap, index: Vec<String>) -> Vec<String> {
 mod tests {
     use super::*;
 
+    macro_rules! hashmap_of_vec {
+        ($( $key: expr => $val: expr ),*) => {{
+            let mut map = ::std::collections::HashMap::new();
+            $( map.insert($key.to_owned(), vec!($val.to_owned())); )*
+            map
+        }}
+    }
+
     #[test]
-    fn test_order_comments_with_index() {
-        let mut comments = HashMap::new();
-        comments.insert("1".to_owned(), vec!("one".to_owned()));
-        comments.insert("2".to_owned(), vec!("two".to_owned()));
-        comments.insert("3".to_owned(), vec!("three".to_owned()));
+    fn should_order_comments_with_index() {
+        let comments = hashmap_of_vec!("2" => "two", "1" => "one", "3" => "three");
         let index = vec!("1".to_owned(), "3".to_owned());
         assert_eq!(order_comments(comments, index), vec!("1", "one", "3", "three", "2", "two"));
     }
 
     #[test]
-    fn order_comments_with_no_index() {
-        let mut comments = HashMap::new();
-        comments.insert("1".to_owned(), vec!("one".to_owned()));
-        comments.insert("2".to_owned(), vec!("two".to_owned()));
+    fn should_order_comments_with_no_index_given() {
+        let comments = hashmap_of_vec!("1" => "one", "2" => "two");
         let index: Vec<String> = Vec::new();
         let result = order_comments(comments, index);
         assert_eq!(result.len(), 4);
@@ -137,10 +141,8 @@ mod tests {
     }
 
     #[test]
-    fn order_comments_with_no_matching_index() {
-        let mut comments = HashMap::new();
-        comments.insert("1".to_owned(), vec!("one".to_owned()));
-        comments.insert("2".to_owned(), vec!("two".to_owned()));
+    fn should_order_comments_with_no_matching_entries_in_index() {
+        let comments = hashmap_of_vec!("1" => "one", "2" => "two");
         let index = vec!("3".to_owned(), "4".to_owned());
         let result = order_comments(comments, index);
         assert_eq!(result.len(), 4);
@@ -148,9 +150,46 @@ mod tests {
     }
 
     #[test]
-    fn order_empty_comments() {
+    fn should_order_empty_comments() {
         let comments = HashMap::new();
         let result: Vec<String> = Vec::new();
         assert_eq!(order_comments(comments, Vec::new()), result);
+    }
+
+    #[test]
+    fn should_merge_maps_with_same_keys() {
+        let map1 = hashmap_of_vec!("1" => "one", "2" => "two");
+        let map2 = hashmap_of_vec!("1" => "another one", "2" => "another two");
+        let result = merge_maps(&vec!(map1, map2));
+        let empty_vec = vec!("".to_owned());
+        let first_key = result.get(&"1".to_owned()).unwrap_or(&empty_vec);
+        let second_key = result.get(&"2".to_owned()).unwrap_or(&empty_vec);
+        assert_eq!(first_key.contains(&"one".to_owned()), true);
+        assert_eq!(first_key.contains(&"another one".to_owned()), true);
+        assert_eq!(second_key.contains(&"two".to_owned()), true);
+        assert_eq!(second_key.contains(&"another two".to_owned()), true);
+    }
+
+    #[test]
+    fn should_merge_maps_with_different_keys() {
+        let map1 = hashmap_of_vec!("1" => "one", "2" => "two");
+        let map2 = hashmap_of_vec!("3" => "three", "4" => "four");
+        let result = merge_maps(&vec!(map1, map2));
+        let empty_vec = vec!("".to_owned());
+        let first_key = result.get(&"1".to_owned()).unwrap_or(&empty_vec);
+        let second_key = result.get(&"2".to_owned()).unwrap_or(&empty_vec);
+        let third_key = result.get(&"3".to_owned()).unwrap_or(&empty_vec);
+        let fourth_key = result.get(&"4".to_owned()).unwrap_or(&empty_vec);
+        assert_eq!(first_key.contains(&"one".to_owned()), true);
+        assert_eq!(second_key.contains(&"two".to_owned()), true);
+        assert_eq!(third_key.contains(&"three".to_owned()), true);
+        assert_eq!(fourth_key.contains(&"four".to_owned()), true);
+    }
+
+    #[test]
+    fn should_merge_empty_maps() {
+        let map1: HashMap<String, Vec<String>> = HashMap::new();
+        let map2: HashMap<String, Vec<String>> = HashMap::new();
+        assert_eq!(merge_maps(&vec!(map1, map2)), HashMap::new());
     }
 }
