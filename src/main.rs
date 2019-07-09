@@ -110,3 +110,47 @@ fn order_comments(comments: DocMap, index: Vec<String>) -> Vec<String> {
     }
     output
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_order_comments_with_index() {
+        let mut comments = HashMap::new();
+        comments.insert("1".to_owned(), vec!("one".to_owned()));
+        comments.insert("2".to_owned(), vec!("two".to_owned()));
+        comments.insert("3".to_owned(), vec!("three".to_owned()));
+        let index = vec!("1".to_owned(), "3".to_owned());
+        assert_eq!(order_comments(comments, index), vec!("1", "one", "3", "three", "2", "two"));
+    }
+
+    #[test]
+    fn order_comments_with_no_index() {
+        let mut comments = HashMap::new();
+        comments.insert("1".to_owned(), vec!("one".to_owned()));
+        comments.insert("2".to_owned(), vec!("two".to_owned()));
+        let index: Vec<String> = Vec::new();
+        let result = order_comments(comments, index);
+        assert_eq!(result.len(), 4);
+        assert_eq!(result.contains(&"1".to_owned()), true);
+    }
+
+    #[test]
+    fn order_comments_with_no_matching_index() {
+        let mut comments = HashMap::new();
+        comments.insert("1".to_owned(), vec!("one".to_owned()));
+        comments.insert("2".to_owned(), vec!("two".to_owned()));
+        let index = vec!("3".to_owned(), "4".to_owned());
+        let result = order_comments(comments, index);
+        assert_eq!(result.len(), 4);
+        assert_eq!(result.contains(&"1".to_owned()), true);
+    }
+
+    #[test]
+    fn order_empty_comments() {
+        let comments = HashMap::new();
+        let result: Vec<String> = Vec::new();
+        assert_eq!(order_comments(comments, Vec::new()), result);
+    }
+}
