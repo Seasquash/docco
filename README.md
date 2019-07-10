@@ -11,6 +11,10 @@ The comments within the DocBlock will be analysed, the src code is left as
 it is.
 
 
+The comments are extracted from a block of code and separated by single "lines", while the "delimiter" passed in the
+config, and leading empty spaces will be removed from the comment itself.
+
+
 The comments are only captured if the first is a MD header, to avoid
 capturing function comments.
 
