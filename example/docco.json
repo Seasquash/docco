@@ -1,0 +1,31 @@
+{
+  "index": [
+    "# Docco",
+    "## Parsing",
+    "## Ordering",
+    "# This is a block comment",
+    "### Another block of comments",
+    "## Block comment with header",
+    "## Another block comment with header"
+  ],
+  "formats": [
+    {
+      "extension": ".ts",
+      "start": "/**",
+      "end": "*/",
+      "delimiter": "*"
+    },
+    {
+      "extension": ".js",
+      "start": "/**",
+      "end": "*/",
+      "delimiter": "*"
+    },
+    {
+      "extension": ".rs",
+      "start": "/**",
+      "end": "*/",
+      "delimiter": "*"
+    }
+  ]
+}
