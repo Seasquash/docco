@@ -37,12 +37,19 @@ pub fn parse_src<'a>(src: &'a str, map: DocMap, start: &'a str, end: &'a str, de
             match header_comment {
                 Ok((comment_lines, header)) => {
                     println!("HEADER: {:?}", header);
-                    let comments = extract_comments_from_block(comment_lines, delimiter);
-                    cloned.insert(header, comments);
-                    parse_src(rest, cloned, start, end, delimiter)
+                    let mut comments = extract_comments_from_block(comment_lines, delimiter);
+                    match cloned.get(&header) {
+                        Some(v) => {
+                            let mut new_values = v.clone();
+                            new_values.append(&mut comments);
+                            cloned.insert(header, new_values);
+                        },
+                        None => { cloned.insert(header, comments); }
+                    }
                 },
-                Err(e) => { println!("HEADER NOT FOUND: {:?}", e); map }
+                Err(e) => { println!("HEADER NOT FOUND: {:?}", e); }
             }
+            parse_src(rest, cloned, start, end, delimiter)
         },
         Err(e) => { println!("PARSE ERROR: {:?}", e); map }
     }
