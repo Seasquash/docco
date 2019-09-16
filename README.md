@@ -24,3 +24,8 @@ If there is an `index` entry within the configuration json, it will be used
 to figure out the order in which the comments have to be written to the
 documentation, otherwise spits them as they are found while processing.
 
+## TODO
+
+- Extract at least 2 levels of sub-comments that can be grouped under the main section.
+Example, if two blocks have a section # Title, a subsection # Title2 and two subsection under that, # Sub1 and # Sub2 , instead of #Title2 being repeated, # Sub1 and # Sub2 should be grouped under one # Title2
+

@@ -40,6 +40,12 @@ pub fn extract_comments_from_block(block: &str, delimiter: char) -> Vec<String> 
         .collect()
 }
 
+/**
+ * ## TODO
+ *
+ * - Extract at least 2 levels of sub-comments that can be grouped under the main section.
+ *      Example, if two blocks have a section # Title, a subsection # Title2 and two subsection under that, # Sub1 and # Sub2 , instead of #Title2 being repeated, # Sub1 and # Sub2 should be grouped under one # Title2
+ */
 pub fn extract_comment_block<'a>(input: &'a str, start: &'a str, end: &'a str) -> IResult<&'a str, &'a str> {
     let res = discard(input, start)?;
     delimited(
@@ -63,10 +69,18 @@ pub fn extract_config() -> Result<Config, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nom::Needed::Size;
+    use nom::Err::Incomplete;
 
     #[test]
-    fn should_remove_the_code_leading_to_a_doc_block() {
+    fn should_remove_all_the_code_leading_to_a_doc_block() {
         let src = "this is some random code [\n* this is a random piece\n* of doc block\n]\nwith extra\ncode after that";
         assert_eq!(discard(src, "["), Ok(("[\n* this is a random piece\n* of doc block\n]\nwith extra\ncode after that", src)));
+    }
+
+    #[test]
+    fn should_return_an_error_if_no_doc_block_found() {
+        let src = "this is some random code [\n* this is a random piece\n* of non-doc block\n]\nwith extra\ncode after that";
+        assert_eq!(discard(src, "/**"), Err(Incomplete(Size(3))));
     }
 }
