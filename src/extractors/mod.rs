@@ -7,8 +7,8 @@ use nom::{
   sequence::delimited,
   bytes::complete::tag,
   bytes::complete::take_until,
-  do_parse,
-  take_until
+  // do_parse,
+  // take_until
 };
 
 use super::models::Config;
@@ -20,10 +20,8 @@ use super::models::Config;
  * it is.
  */
 fn discard<'a>(input: &'a str, start: &'a str) -> IResult<&'a str, &'a str> {
-    do_parse!(input,
-        take_until!(start) >>
-        (input)
-    )
+    take_until(start)(input)
+        .map(|(res, _)| (res, input))
 }
 
 /**
@@ -69,8 +67,20 @@ pub fn extract_config() -> Result<Config, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::Needed::Size;
-    use nom::Err::Incomplete;
+    use nom::error::ErrorKind::TakeUntil;
+    use nom::error::Error;
+
+    #[test]
+    fn should_extract_a_comment_from_a_block() {
+        let src = "> this is a doc block comment";
+        assert_eq!(extract_comments_from_block(src, '>'), vec!["this is a doc block comment"]);
+    }
+
+    #[test]
+    fn should_extract_a_comment_block() {
+        let src = "/** this is a comment block **/ this is some code";
+        assert_eq!(extract_comment_block(src, "/**", "**/"), Ok((" this is some code", " this is a comment block ")));
+    }
 
     #[test]
     fn should_remove_all_the_code_leading_to_a_doc_block() {
@@ -81,6 +91,9 @@ mod tests {
     #[test]
     fn should_return_an_error_if_no_doc_block_found() {
         let src = "this is some random code [\n* this is a random piece\n* of non-doc block\n]\nwith extra\ncode after that";
-        assert_eq!(discard(src, "/**"), Err(Incomplete(Size(3))));
+        assert_eq!(
+            discard(src, "/**"),
+            Err(nom::Err::Error(Error { input: "this is some random code [\n* this is a random piece\n* of non-doc block\n]\nwith extra\ncode after that", code: TakeUntil }))
+        );
     }
 }

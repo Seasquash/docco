@@ -2,8 +2,8 @@ use nom::{
   IResult,
   sequence::delimited,
   bytes::complete::{ tag, take_till },
-  do_parse,
-  take_until,
+  // Parser::parse,
+  bytes::complete::take_until,
 };
 
 use super::types::DocMap;
@@ -16,10 +16,7 @@ use super::extractors::{ extract_comments_from_block, extract_comment_block };
  * capturing function comments.
  */
 fn find_header(input: &str) -> IResult<&str, String> {
-    let (parsed, _) = do_parse!(input,
-        take_until!("#") >>
-        (input)
-    )?;
+    let (parsed, _) = take_until("#")(input)?;
     let res = delimited(
         take_till(|c| c == '#'),
         take_till(|c| c == '\n'),
@@ -36,7 +33,6 @@ pub fn parse_src<'a>(src: &'a str, map: DocMap, start: &'a str, end: &'a str, de
             let header_comment = find_header(comment_block);
             match header_comment {
                 Ok((comment_lines, header)) => {
-                    println!("HEADER: {:?}", header);
                     let mut comments = extract_comments_from_block(comment_lines, delimiter);
                     match cloned.get(&header) {
                         Some(v) => {
@@ -47,10 +43,10 @@ pub fn parse_src<'a>(src: &'a str, map: DocMap, start: &'a str, end: &'a str, de
                         None => { cloned.insert(header, comments); }
                     }
                 },
-                Err(e) => { println!("HEADER NOT FOUND: {:?}", e); }
+                Err(_) => () 
             }
             parse_src(rest, cloned, start, end, delimiter)
         },
-        Err(e) => { println!("PARSE ERROR: {:?}", e); map }
+        Err(_) => map
     }
 }
